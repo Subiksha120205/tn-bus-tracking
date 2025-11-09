@@ -1,0 +1,561 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Panel | TN Bus Tracker</title>
+
+<link rel="stylesheet" href="../assets/leaflet.css"/>
+<style>
+/* --- General Body --- */
+body { 
+  font-family: "Poppins", sans-serif; 
+  background: radial-gradient(circle at top, #0a2e14, #021208); 
+  margin: 0;
+  color: #d9fcd6;
+  overflow-x: hidden;
+}
+
+/* --- Topbar --- */
+.topbar {
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  padding: 14px 20px; 
+  background: rgba(0, 40, 20, 0.85); 
+  color: #00ff80; 
+  font-size: 1.2rem; 
+  font-weight: bold; 
+  box-shadow: 0 0 15px rgba(0, 255, 100, 0.25);
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  width: 100%;
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(0, 255, 100, 0.3);
+}
+
+.logo { 
+  display: flex; 
+  align-items: center;
+  gap: 10px; 
+  text-shadow: 0 0 6px #00ff80;
+}
+
+.logo img { 
+  height: 40px; 
+  border-radius: 8px; 
+  background: transparent; 
+  filter: drop-shadow(0 0 6px #00ff80);
+}
+
+/* --- Logout Button --- */
+.logout-btn {
+  background: linear-gradient(90deg, #00ff80, #00cc66); 
+  color: #021808; 
+  border: none; 
+  padding: 10px 16px; 
+  border-radius: 10px; 
+  cursor: pointer; 
+  font-size: 1rem; 
+  font-weight: 600; 
+  transition: 0.3s; 
+  box-shadow: 0 0 10px #00ff80;
+}
+.logout-btn:hover { 
+  background: linear-gradient(90deg, #00cc66, #00ff99); 
+  box-shadow: 0 0 18px #00ff99;
+  transform: scale(1.05);
+}
+
+/* --- Main Container --- */
+.container {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 20px;
+  padding: 20px;
+  align-items: stretch;
+  height: calc(100vh - 80px);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* --- Left Panel --- */
+.left {
+  width: 320px;
+  background: rgba(0, 40, 20, 0.85);
+  padding: 16px;
+  border-radius: 15px;
+  box-shadow: 0 0 20px rgba(0, 255, 100, 0.15);
+  border: 1px solid rgba(0, 255, 100, 0.25);
+  backdrop-filter: blur(8px);
+  overflow-y: auto;
+  height: 100%;
+}
+
+/* --- Map Wrap --- */
+.mapwrap {
+  flex: 1;
+  border-radius: 15px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 25px rgba(0, 255, 100, 0.15);
+  border: 1px solid rgba(0, 255, 100, 0.25);
+  height: 100%;
+}
+#map { 
+  height: 100%; 
+  width: 100%; 
+  border-radius: 15px;
+}
+
+/* --- Form Styling --- */
+form {
+  background: rgba(0, 25, 10, 0.5);
+  padding: 14px;
+  border-radius: 10px;
+}
+input, textarea, select, button {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 255, 100, 0.3);
+  background: rgba(0, 30, 15, 0.6);
+  color: #d9fcd6;
+  font-family: inherit;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+}
+input::placeholder, textarea::placeholder { color: #9effa4; }
+input:focus, textarea:focus, select:focus {
+  border-color: #00ff80;
+  box-shadow: 0 0 10px #00ff80;
+}
+button {
+  background: linear-gradient(90deg, #00ff80, #00cc66);
+  color: #021808;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+  border: none;
+  box-shadow: 0 0 12px #00ff80;
+}
+button:hover {
+  background: linear-gradient(90deg, #00cc66, #00ff99);
+  box-shadow: 0 0 20px #00ff99;
+  transform: scale(1.03);
+}
+
+/* --- Status Message --- */
+#statusMsg {
+  color: #00ff99;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+/* --- Notification --- */
+.notification {
+  background: rgba(0, 40, 20, 0.6);
+  color: #9effa4;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  font-weight: 500;
+  border-left: 4px solid #00ff80;
+  box-shadow: 0 0 10px rgba(0, 255, 100, 0.1);
+}
+
+/* --- Headings --- */
+h3 {
+  color: #00ff99;
+  text-shadow: 0 0 8px #00ff80;
+  border-bottom: 1px solid rgba(0, 255, 100, 0.25);
+  padding-bottom: 5px;
+  margin-top: 0;
+}
+
+/* --- Scrollbar Styling --- */
+.left::-webkit-scrollbar {
+  width: 6px;
+}
+.left::-webkit-scrollbar-thumb {
+  background: #00ff80;
+  border-radius: 6px;
+}
+
+/* --- Responsive Adjustments --- */
+@media(max-width:1200px){
+  .container { 
+    flex-direction: column; 
+    height: auto;
+  }
+  .left, .mapwrap { 
+    width: 100%; 
+    height: auto; 
+  }
+  #map { 
+    min-height: 420px; 
+  }
+}
+
+@media(max-width:768px){
+  .topbar { 
+    flex-direction: column; 
+    gap: 10px; 
+    text-align: center; 
+    font-size: 1rem; 
+    padding: 10px; 
+  }
+  .logout-btn { 
+    align-self: center; 
+  }
+  .container { 
+    flex-direction: column; 
+    padding: 15px; 
+  }
+  .left, .mapwrap { 
+    width: 100%; 
+    height: auto; 
+  }
+  #map { 
+    min-height: 350px; 
+  }
+  input, select, button { 
+    padding: 12px; 
+    font-size: 1rem; 
+  }
+}
+
+@media(max-width:768px){
+  .topbar { 
+    flex-direction: column; 
+    gap: 10px; 
+    text-align: center; 
+    font-size: 1rem; 
+    padding: 10px; 
+  }
+
+  .logout-btn { 
+    align-self: center; 
+  }
+
+  /* Stack content vertically (map comes after left panel) */
+  .container { 
+    flex-direction: column; 
+    padding: 15px; 
+    height: auto;
+  }
+
+  .left { 
+    width: 100%; 
+    height: auto; 
+    order: 1; /* 👈 Left panel first */
+  }
+
+  .mapwrap { 
+    width: 100%; 
+    height: auto; 
+    order: 2; /* 👈 Map below the left panel */
+    margin-top: 15px;
+  }
+
+  #map { 
+    min-height: 350px; 
+  }
+
+  input, select, button { 
+    padding: 12px; 
+    font-size: 1rem; 
+  }
+}
+/* 🌿 Center Alignment Fix for Left Panel */
+.left {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* centers inner content */
+  text-align: center;  /* aligns text and buttons centrally */
+  gap: 16px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+/* Make internal elements fit neatly in center */
+.left h3,
+.left form,
+.left .notification,
+.left button,
+.left select,
+.left input {
+  width: 100%;
+  max-width: 280px; /* keeps consistent center width */
+  margin: 0 auto;
+}
+
+/* Responsive fine-tune for mobile */
+@media(max-width:768px){
+  .left {
+    align-items: center;
+    text-align: center;
+  }
+  .left h3,
+  .left form,
+  .left .notification {
+    max-width: 100%;
+  }
+}
+
+
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">
+    <img src="../image.jpg" alt="TN Logo"> User Panel
+  </div>
+  <button class="logout-btn" id="btnLogout">Logout</button>
+</div>
+
+<div class="container">
+  <div class="left">
+    <h3>Track Bus by Route</h3>
+    <div id="routesList"></div>
+
+    <h3>Submit Complaint</h3>
+    <div id="statusMsg"></div>
+    <form id="complaintForm">
+      <select id="busDropdown" required>
+        <option value="">Select Bus Number</option>
+      </select>
+      <textarea id="message" placeholder="Enter complaint" required></textarea>
+      <button type="submit">Submit</button>
+    </form>
+
+    <div id="notifications"></div>
+
+    <!-- Previous Complaints Section -->
+    <h3>Previous Complaints</h3>
+    <div id="previousComplaints"></div>
+  </div>
+
+  <div class="mapwrap">
+    <div id="map"></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+<script src="../assets/leaflet.js"></script>
+
+<script type="module">
+import { db, ref, get, onValue, push, auth, onAuthStateChanged, signOut } from "./firebase.js";
+
+const map = L.map("map").setView([11.1271, 78.6569], 7);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+
+const routesList = document.getElementById("routesList");
+const complaintForm = document.getElementById("complaintForm");
+const statusMsg = document.getElementById("statusMsg");
+const notifications = document.getElementById("notifications");
+const previousComplaintsDiv = document.getElementById("previousComplaints");
+const busDropdown = document.getElementById("busDropdown");
+const message = document.getElementById("message");
+const logoutBtn = document.getElementById("btnLogout");
+
+let userEmail = "";
+let userName = "";
+let markers = {};         
+let userMarker = null;    
+let userLat = null, userLng = null;
+let firstUserFix = true;
+let currentRoute = "";
+
+// Logout
+logoutBtn.addEventListener("click", async () => {
+  await signOut(auth);
+  window.location.href = "../index.html";
+});
+
+// Auth listener
+onAuthStateChanged(auth, async user => {
+  if (!user) return (window.location.href = "../index.html");
+  userEmail = user.email;
+  userName = user.displayName || user.email.split("@")[0];
+  
+    // Real-time complaint notifications
+  onValue(ref(db, "complaints"), snapshot => {
+    const data = snapshot.val();
+    if (!data) return;
+    notifications.innerHTML = "";
+    Object.entries(data).forEach(([key, c]) => {
+      if (c.userEmail === userEmail) {
+        if (c.status === "resolved" || c.resolved) {
+          const div = document.createElement("div");
+          div.className = "notification";
+          div.textContent = `✅ Your complaint about Bus ${c.busId} has been resolved.`;
+          notifications.appendChild(div);
+        } else {
+          const div = document.createElement("div");
+          div.className = "notification";
+          div.textContent = `⚠️ Your complaint about Bus ${c.busId} is pending.`;
+          notifications.appendChild(div);
+        }
+      }
+    });
+  });
+
+  // Load available routes
+  const routesSnap = await get(ref(db, "routes"));
+  const routes = routesSnap.val();
+  routesList.innerHTML = "";
+  for (const route in routes) {
+    const btn = document.createElement("button");
+    btn.textContent = route;
+    btn.onclick = () => showRouteBuses(route);
+    routesList.appendChild(btn);
+  }
+});
+
+// Complaint submission
+complaintForm.addEventListener("submit", async e => {
+  e.preventDefault();
+  const selectedBus = busDropdown.value;
+  if (!selectedBus) return alert("Please select a bus number!");
+
+  const complaint = {
+    busId: selectedBus,
+    message: message.value.trim(),
+    userEmail,
+    userName,
+    time: new Date().toISOString(),
+    status: "pending"
+  };
+
+  await push(ref(db, "complaints"), complaint);
+  statusMsg.textContent = "✅ Complaint sent successfully!";
+  complaintForm.reset();
+  setTimeout(() => (statusMsg.textContent = ""), 3000);
+});
+
+// Show buses on map by route
+function showRouteBuses(route) {
+  currentRoute = route;
+  const routeRef = ref(db, `routes/${route}`);
+  onValue(routeRef, snapshot => {
+    const data = snapshot.val();
+    if (!data) {
+      Object.values(markers).forEach(m => map.removeLayer(m.marker));
+      markers = {};
+      busDropdown.innerHTML = '<option value="">Select Bus Number</option>';
+      return;
+    }
+
+    busDropdown.innerHTML = '<option value="">Select Bus Number</option>';
+
+    const newKeys = new Set(Object.keys(data).map(b => `${route}_${b}`));
+    Object.keys(markers).forEach(k => {
+      if (!newKeys.has(k)) {
+        map.removeLayer(markers[k].marker);
+        delete markers[k];
+      }
+    });
+
+    Object.entries(data).forEach(([bus, info]) => {
+      const lat = parseFloat(info.latitude);
+      const lng = parseFloat(info.longitude);
+      const key = `${route}_${bus}`;
+
+      const distanceKm = (userLat !== null) ? calcDistance(userLat, userLng, lat, lng) : null;
+      const distanceText = distanceKm !== null ? `${distanceKm.toFixed(2)} km` : "N/A";
+      const etaText = distanceKm !== null ? `${Math.round((distanceKm / 40) * 60)} min` : "N/A";
+
+      const option = document.createElement("option");
+      option.value = bus;
+      option.textContent = bus;
+      busDropdown.appendChild(option);
+
+      const popupContent = `<b>Bus:</b> ${bus}<br><b>Route:</b> ${route}<br><b>Distance:</b> ${distanceText}<br><b>ETA:</b> ${etaText}`;
+
+      if (markers[key]) {
+        markers[key].lat = lat;
+        markers[key].lng = lng;
+        markers[key].marker.setLatLng([lat, lng]);
+        markers[key].marker.setPopupContent(popupContent);
+      } else {
+        const marker = L.marker([lat, lng]).addTo(map)
+          .bindPopup(popupContent)
+          .on("click", () => { busDropdown.value = bus; });
+
+        markers[key] = { marker, lat, lng, bus, route };
+      }
+    });
+  });
+}
+
+// User location tracking
+if (navigator.geolocation) {
+  navigator.geolocation.watchPosition(pos => {
+    userLat = parseFloat(pos.coords.latitude);
+    userLng = parseFloat(pos.coords.longitude);
+
+    if (userMarker) {
+      userMarker.setLatLng([userLat, userLng]);
+    } else {
+      userMarker = L.marker([userLat, userLng], { title: "You are here" }).addTo(map).bindPopup("You are here");
+    }
+
+    if (firstUserFix) {
+      map.setView([userLat, userLng], 12);
+      firstUserFix = false;
+      if (userMarker && userMarker.getPopup()) {
+        userMarker.openPopup();
+        setTimeout(()=> userMarker.closePopup(), 1500);
+      }
+    }
+
+    Object.values(markers).forEach(mObj => {
+      const lat = parseFloat(mObj.lat);
+      const lng = parseFloat(mObj.lng);
+      if (!isFinite(lat) || !isFinite(lng)) return;
+
+      const distanceKm = calcDistance(userLat, userLng, lat, lng);
+      const distanceText = `${distanceKm.toFixed(2)} km`;
+      const etaText = `${Math.round((distanceKm / 40) * 60)} min`;
+
+      const newPopup = `<b>Bus:</b> ${mObj.bus}<br><b>Route:</b> ${mObj.route}<br><b>Distance:</b> ${distanceText}<br><b>ETA:</b> ${etaText}`;
+      mObj.marker.setPopupContent(newPopup);
+
+      if (mObj.marker.isPopupOpen && mObj.marker.getPopup()) {
+        mObj.marker.openPopup();
+      }
+    });
+  }, (err) => {
+    console.warn("Geolocation error:", err.message);
+  }, {
+    enableHighAccuracy: true,
+    maximumAge: 5000,
+    timeout: 10000
+  });
+}
+
+// Haversine distance in kilometers
+function calcDistance(lat1, lon1, lat2, lon2) {
+  lat1 = Number(lat1); lon1 = Number(lon1); lat2 = Number(lat2); lon2 = Number(lon2);
+  if (![lat1,lon1,lat2,lon2].every(isFinite)) return 0;
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+</script>
+</body>
+</html>
