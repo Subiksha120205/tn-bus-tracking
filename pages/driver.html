@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Driver Panel — TN Bus Tracker</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+/* 🌿 Green Neon Bus Tracker UI */
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: "Poppins", sans-serif;
+  background: linear-gradient(135deg, #0b3d2e, #1a5c47, #09291f);
+  color: #c8ffe0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+/* 🔝 Fixed Topbar */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 22px;
+  background: rgba(20, 80, 60, 0.95);
+  color: #baffd9;
+  font-size: 1.2rem;
+  font-weight: bold;
+  box-shadow: 0 0 15px rgba(0, 255, 140, 0.3);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  box-sizing: border-box;
+}
+
+/* 🚍 Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo img {
+  height: 45px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px #00ff99;
+}
+
+/* 🚪 Logout Button */
+.logout {
+  background: #00ff99;
+  color: #0b3d2e;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 0 12px #00ff99;
+  transition: all 0.3s ease;
+}
+
+.logout:hover {
+  background: #00e68a;
+  color: white;
+  box-shadow: 0 0 25px #00ffcc;
+}
+
+/* 🧩 Layout */
+.layout {
+  display: flex;
+  justify-content: center; /* Center horizontally */
+  align-items: flex-start; /* Align from top */
+  gap: 18px;
+  padding: 100px 20px 20px; /* Top padding for fixed topbar */
+  min-height: 100vh;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+}
+
+/* 📋 Left Panel */
+.panel {
+  flex: 0 0 340px;
+  background: rgba(10, 40, 30, 0.9);
+  padding: 18px;
+  border-radius: 14px;
+  overflow-y: auto;
+  color: #d8ffe9;
+  box-shadow: 0 0 20px rgba(0, 255, 140, 0.2);
+  border: 1px solid rgba(0, 255, 140, 0.3);
+  max-height: calc(100vh - 140px);
+  scrollbar-width: thin;
+}
+
+/* 🗺️ Map Wrapper */
+.mapwrap {
+  flex: 1;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 0 25px rgba(0, 255, 140, 0.2);
+  border: 1px solid rgba(0, 255, 140, 0.3);
+  min-height: 450px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  width: 100%;
+  max-width: 700px; /* prevents map from stretching too wide */
+  margin: 0 auto;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  min-height: 450px;
+  border-radius: 14px;
+}
+
+/* 💬 Complaint Section */
+.complaint-section {
+  margin-top: 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 0 15px rgba(0, 255, 140, 0.15);
+  border: 1px solid rgba(0, 255, 140, 0.25);
+  overflow-y: auto;
+  max-height: 350px;
+}
+
+.complaint-item {
+  background: rgba(10, 40, 30, 0.8);
+  border-left: 4px solid #00ff99;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: #d8ffe9;
+  box-shadow: 0 0 10px rgba(0, 255, 140, 0.1);
+}
+
+.complaint-item b {
+  color: #00ffcc;
+}
+
+/* 📱 Responsive Design */
+@media (max-width: 900px) {
+  .layout {
+    flex-direction: column;
+    align-items: center;
+    padding: 90px 15px 15px;
+  }
+
+  .panel {
+    width: 100%;
+    max-height: none;
+    margin-bottom: 20px;
+  }
+
+  .mapwrap {
+    width: 100%;
+    min-height: 380px;
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .layout {
+    padding: 100px 10px 10px;
+  }
+
+  .panel {
+    width: 95%;
+  }
+
+  .mapwrap {
+    width: 95%;
+    min-height: 320px;
+  }
+
+  button, .logout {
+    font-size: 0.85rem;
+    padding: 8px;
+  }
+}
+
+
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="logo">
+    <img src="../image.jpg" alt="TN Govt Transport Logo"/> Driver Dashboard
+  </div>
+  <button id="btnLogout" class="logout">Logout</button>
+</header>
+
+<div class="layout">
+  <aside class="panel">
+    <h3>Your Assigned Bus</h3>
+    <p id="busInfo">Loading...</p>
+    <button id="btnShare">Share Live Location</button>
+    <p id="status"></p>
+
+    <div class="complaint-section">
+      <h4>Complaints for Your Bus</h4>
+      <div id="complaintsList">No complaints yet.</div>
+    </div>
+  </aside>
+
+  <section class="mapwrap">
+    <div id="map"></div>
+  </section>
+</div>
+
+<script src="../assets/leaflet.js"></script>
+<script type="module">
+import { db, ref, get, set, update, auth, onAuthStateChanged, keyFromEmail, signOut, onValue } from "./firebase.js";
+
+let map = L.map('map').setView([11.1271, 78.6569], 7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+const busInfo = document.getElementById('busInfo');
+const btnShare = document.getElementById('btnShare');
+const status = document.getElementById('status');
+const complaintsList = document.getElementById('complaintsList');
+
+let marker = null;
+let watchId = null;
+let assignedBus = null;
+let assignedRoute = null;
+
+// Logout
+document.getElementById('btnLogout').addEventListener('click', async () => {
+  await signOut(auth);
+  window.location.href = '../index.html';
+});
+
+// Auth check
+onAuthStateChanged(auth, async user => {
+  if(!user) return window.location.href = '../index.html';
+  
+  const emailKey = keyFromEmail(user.email);
+  const snap = await get(ref(db, `assignedDrivers/${emailKey}`));
+  if(!snap.exists()){
+    busInfo.textContent = "No bus assigned yet.";
+    return;
+  }
+
+  const busData = snap.val();
+  assignedBus = busData.busNo;
+  assignedRoute = busData.route;
+
+  busInfo.innerHTML = `<b>Bus:</b> ${busData.busNo}<br><b>Route:</b> ${busData.route}<br><b>Duration:</b> ${busData.durationDays || 'Permanent'}`;
+
+  // Listen for complaints related to this bus
+  onValue(ref(db, 'complaints'), snapshot => {
+    const data = snapshot.val();
+    if(!data){
+      complaintsList.innerHTML = "No complaints yet.";
+      return;
+    }
+
+    const relevant = Object.values(data).filter(c => c.busId === assignedBus);
+    if(relevant.length === 0){
+      complaintsList.innerHTML = "No complaints yet.";
+    } else {
+      complaintsList.innerHTML = relevant.map(c => `
+        <div class="complaint-item">
+          <b>Bus ${c.busId}</b><br>${c.message}
+        </div>
+      `).join('');
+    }
+  });
+
+  // Show previous location
+  const locSnap = await get(ref(db, `driversLocation/${emailKey}`));
+  if(locSnap.exists()){
+    const loc = locSnap.val();
+    marker = L.marker([loc.lat, loc.lng]).addTo(map)
+      .bindPopup(`Bus: ${busData.busNo}<br>Route: ${busData.route}`);
+    map.setView([loc.lat, loc.lng], 14);
+  }
+
+  // Share live location
+  btnShare.addEventListener('click', () => {
+    if (!navigator.geolocation) return status.textContent = "Geolocation not supported.";
+
+    if(watchId) navigator.geolocation.clearWatch(watchId);
+    btnShare.disabled = true;
+    status.textContent = "Sharing live location...";
+
+    watchId = navigator.geolocation.watchPosition(
+      async pos => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+
+        await set(ref(db, `driversLocation/${emailKey}`), { lat, lng, busId: busData.busNo, route: busData.route, time: new Date().toISOString() });
+        await update(ref(db, `routes/${busData.route}/${busData.busNo}`), { latitude: lat, longitude: lng });
+
+        if (marker) marker.setLatLng([lat, lng]);
+        else marker = L.marker([lat, lng]).addTo(map).bindPopup(`Bus: ${busData.busNo}<br>Route: ${busData.route}`).openPopup();
+
+        map.setView([lat, lng], 14);
+        status.textContent = `Location updated at ${new Date().toLocaleTimeString()}`;
+      },
+      err => status.textContent = "Unable to get location: " + err.message,
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+    );
+  });
+});
+</script>
+</body>
+</html>
