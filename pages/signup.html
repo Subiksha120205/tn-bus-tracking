@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Signup - TN Bus Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <style>
+/* --- Background --- */
+/* --- Body --- */
+body {
+  font-family: "Poppins", sans-serif;
+  background: radial-gradient(circle at top, #0a2e14, #021208);
+  margin: 0;
+  color: #d9fcd6;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* --- Scrollable Container Wrapper --- */
+.wrapper {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+/* --- Container --- */
+.container {
+  background: rgba(0, 40, 20, 0.85);
+  border: 1px solid rgba(0, 255, 100, 0.25);
+  border-radius: 18px;
+  box-shadow: 0 0 25px rgba(0, 255, 100, 0.15);
+  padding: 40px 30px;
+  width: 380px;
+  max-width: 95%;
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+
+/* --- Logo --- */
+.logo {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  filter: drop-shadow(0 0 12px #00ff80);
+}
+
+/* --- Heading --- */
+h2 {
+  color: #00ff99;
+  text-shadow: 0 0 8px #00ff80;
+  margin-bottom: 10px;
+  font-size: 1.6rem;
+}
+
+/* --- Subtitle / message --- */
+p {
+  color: #aaffb0;
+  margin-bottom: 25px;
+  font-weight: 500;
+}
+
+/* --- Form fields --- */
+input, select, button {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 255, 100, 0.3);
+  background: rgba(0, 30, 15, 0.6);
+  color: #d9fcd6;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.25s ease;
+}
+
+input::placeholder,
+select {
+  color: #9effa4;
+}
+
+input:focus, select:focus {
+  border-color: #00ff80;
+  box-shadow: 0 0 10px #00ff80;
+}
+
+/* --- Button --- */
+button {
+  background: linear-gradient(90deg, #00ff80, #00cc66);
+  color: #021808;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 15px #00ff80;
+  transition: all 0.3s;
+}
+
+button:hover {
+  background: linear-gradient(90deg, #00cc66, #00ff99);
+  box-shadow: 0 0 25px #00ff99;
+  transform: scale(1.04);
+}
+
+/* --- Links --- */
+a {
+  color: #00ff99;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* --- Messages --- */
+.error {
+  color: #ff5c5c;
+  font-weight: bold;
+}
+
+.success {
+  color: #00ff99;
+  font-weight: bold;
+}
+
+/* --- Responsive --- */
+@media (max-height: 700px) {
+  .wrapper {
+    align-items: flex-start;
+    padding-top: 30px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    width: 90%;
+    padding: 25px 20px;
+  }
+
+  .logo {
+    width: 90px;
+    height: 90px;
+  }
+
+  h2 {
+    font-size: 1.4rem;
+  }
+
+  input, select, button {
+    font-size: 0.95rem;
+    padding: 10px;
+  }
+}
+
+
+</style>
+
+</head>
+<body>
+
+ <div class="wrapper">
+  <div class="container">
+    <img src="../image.jpg" class="logo" alt="TN Bus Tracker Logo">
+    <h2>Signup</h2>
+
+    <input type="text" id="name" placeholder="Full Name" required>
+    <input type="email" id="email" placeholder="Email" required>
+    <input type="password" id="password" placeholder="Password" required>
+
+    <select id="role" required>
+      <option value="">Select Role</option>
+      <option value="user">User</option>
+      <option value="driver">Driver</option>
+      
+    </select>
+
+    <button id="signupBtn">Signup</button>
+    <p id="msg"></p>
+  </div>
+</div>
+
+
+  <script type="module">
+  import { db, ref, set, auth, createUserWithEmailAndPassword, sendEmailVerification, keyFromEmail } from "./firebase.js";
+
+  const signupBtn = document.getElementById('signupBtn');
+  const msg = document.getElementById('msg');
+
+  signupBtn.addEventListener('click', async () => {
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const password = document.getElementById('password').value;
+    const role = document.getElementById('role').value;
+
+    if (!name || !email || !password) {
+      msg.textContent = "All fields are required!";
+      msg.className = "error";
+      return;
+    }
+
+    try {
+  // Create Firebase Auth user
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+  // ✅ Send email verification with logging
+  await sendEmailVerification(userCredential.user)
+    .then(() => console.log("Verification email sent"))
+    .catch(err => console.log("Email error:", err));
+
+  // Save additional info in Realtime Database
+  const userKey = keyFromEmail(email);
+  await set(ref(db, `users/${userKey}`), {
+    name,
+    email,
+    role,
+    createdAt: new Date().toISOString()
+  });
+
+  msg.textContent = "Signup successful! Verification email sent. Check your inbox.";
+  msg.className = "success";
+
+  // Redirect after 3 seconds to login page
+  setTimeout(() => { window.location.href = 'login.html'; }, 3000);
+
+} catch (err) {
+  msg.textContent = err.message;
+  msg.className = "error";
+}
+
+  });
+</script>
+
+
+</body>
+</html>
